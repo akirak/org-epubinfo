@@ -46,85 +46,52 @@
 
 ;;;; Table of contents
 
-(defcustom org-epubinfo-toc-dblock-params
-  '(:context self)
-  "The default parameters for \"epub-toc\" dynamic blocks.
-
-The following options are supported:
-
-:context
-  Denote the Org entry from which a file link.
-  The following symbols are accepted:
-
-  * `self': The entry the dblock resides in.
-  * `parent': The parent entry of `self'.
-
-:depth
-  Maximum depth of rendered items.
-
-:checkbox
-  When non-nil, a checkbox is added to each item."
+(defcustom org-epubinfo-toc-dblock-defaults
+  '(:depth 1)
+  "Default parameters for the \"epub-toc\" dynamic block."
   :type 'plist)
+
+(defcustom org-epubinfo-context 'self
+  "Entry in which a file link should be located."
+  :type '(choice (const :tag "Entry of the dblock" self)
+                 (const :tag "Parent entry" parent)))
 
 ;;;###autoload
 (defun org-dblock-write:epub-toc (params)
-  "Insert the toc of an EPUB file into the current block.
+  "Insert the content of an \"epub-toc\" dynamic block.
 
-PARAMS is a plist of parameters to configure the output."
-  (let* ((params (org-combine-plists org-epubinfo-toc-dblock-params
-                                     params))
+PARAMS is a plist, as in other dynamic block definitions.
+
+See also `org-epubinfo-toc-dblock-defaults'."
+  (let* ((params (org-combine-plists org-epubinfo-toc-dblock-defaults params))
+         (checkbox (plist-get params :checkbox))
+         (depth (plist-get params :depth))
          (file (or (plist-get params :file)
-                   (org-epubinfo--find-file-link
-                    (plist-get params :context)))))
-    (insert (apply #'org-epubinfo--toc-string file
-                   (list :depth (plist-get params :depth)
-                         :checkbox (plist-get params :checkbox))))))
+                   (org-epubinfo--file-from-context)
+                   (user-error ":file is not specified and no file link is in the entry"))))
+    (apply #'call-process
+           "epubinfo" nil t nil
+           "toc" "--org"
+           (append (when checkbox
+                     '("--checkbox"))
+                   (when depth
+                     (list "--depth" (number-to-string depth)))
+                   (list (expand-file-name file))))))
 
-;;;###autoload
-(defun org-epubinfo-insert-toc (file)
-  "Insert the table of contents of FILE."
-  (interactive "fEPUB file: ")
-  (insert (org-epubinfo--toc-string file)))
-
-(cl-defun org-epubinfo--toc-string (file &key depth checkbox)
-  "Insert the toc of an EPUB file.
-
-FILE is the name of an EPUB file.
-
-When DEPTH is given as a number, limit the depth to it.
-
-When CHECKBOX is non-nil, add a checkbox to each item."
-  (with-temp-buffer
-    (unless (zerop (apply #'process-file
-                          org-epubinfo-executable
-                          nil (list (current-buffer) nil) nil
-                          "toc" "--org"
-                          `(,@(when depth
-                                (list (format "--depth=%d" depth)))
-                            ,@(when checkbox
-                                '("--checkbox"))
-                            ,file)))
-      (error "Error from epubinfo on %s" file))
-    (buffer-string)))
-
-;;;; Helpers
-
-(defun org-epubinfo--find-file-link (context)
-  "Return the first file link in CONTEXT."
-  (org-with-wide-buffer
-   (cl-ecase context
-     (self (org-back-to-heading))
-     (parent (org-up-heading-all 1)))
-   (let ((limit (org-entry-end-position))
-         (headline (nth 4 (org-heading-components))))
-     (catch 'file
-       (while (re-search-forward org-link-bracket-re limit)
-         (let ((uri (plist-get (get-char-property (1- (point)) 'htmlize-link)
-                               :uri)))
-           (when (string-prefix-p "file:" uri)
-             (throw 'file (expand-file-name
-                           (string-remove-prefix "file:" uri))))))
-       (error "No file link was found in \"%s\"" headline)))))
+(defun org-epubinfo--file-from-context ()
+  "Return an epub file discovered from the context."
+  (catch 'epub-file
+    (save-excursion
+      (org-back-to-heading)
+      (when (eq org-epubinfo-context 'parent)
+        (org-up-element))
+      (save-match-data
+        (while (re-search-forward org-link-any-re (org-entry-end-position) t)
+          (let ((dest (match-string 2)))
+            (when (and (string-match (rx bol "file:" (group (+ anything))) dest)
+                       (string-suffix-p ".epub" (match-string 1 dest)))
+              (throw 'epub-file
+                     (substring-no-properties (match-string 1 dest))))))))))
 
 (provide 'org-epubinfo)
 ;;; org-epubinfo.el ends here
