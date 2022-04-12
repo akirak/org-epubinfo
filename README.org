@@ -10,12 +10,11 @@ Install =epubinfo= program and this package.
 See the following example:
 
 #+begin_src org
-  ,#+BEGIN: epub-toc :context self :depth 1 :checkbox t
+  ,#+BEGIN: epub-toc :depth 1 :checkbox t
   ,#+END:
 #+end_src
 
-The first =file:= link of the Org entry should point to an EPUB file.
-Optionally, you can change it to the parent entry by setting =:context= to =parent=.
+The Org entry should contain a =file:= link to the EPUB file.
 
 When you hit =C-c C-c= on this block, an Org list is inserted into the block.
 The maximum depth is 1 in this example, so only the chapters are populated.
@@ -52,8 +51,10 @@ The output will be as follows:
 
 The block supports the following options:
 
-- =:context= :: Org entry which should contain a file link to the EPUB file. =self= and =parent= are supported, and the default is =self=. Note that the first =file:= link in the entry should point to the EPUB file.
-- =:depth= :: Depth of entries to include in the output. The default is nil, which means all entries are included.
-- =:checkbox= :: Whether to add a checkbox to each item. The default is nil.
+- =:depth= :: Depth of entries to include in the output.
+- =:checkbox= :: Whether to add a checkbox to each item.
+
+You can change the defaults by customizing =org-epubinfo-toc-dblock-defaults= variable.
+
 ** License
 GPL v3
