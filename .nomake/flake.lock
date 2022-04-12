@@ -1,0 +1,27 @@
+{
+  "nodes": {
+    "org-epubinfo": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1649731336,
+        "narHash": "sha256-I5HyIGpxB/nbnHpmHzIwjif6+oKbvtJi7YbjTMoKRto=",
+        "owner": "akirak",
+        "repo": "org-epubinfo",
+        "rev": "9252afda2e7d25c17d89dc996eb20e493a233fd7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "akirak",
+        "repo": "org-epubinfo",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "org-epubinfo": "org-epubinfo"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
